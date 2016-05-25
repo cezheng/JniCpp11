@@ -152,7 +152,7 @@ template <> class JavaArray<JavaObject> : public JavaObject {
 
 #pragma mark - jstring cast methods
 
-std::string fromJString(jstring jstr, const std::string &defaultValue = "");
+std::string fromJString(jstring jstr, const std::string &defaultValue = "", bool deleteLocalRef = false);
 std::string fromJString(const JavaObject &jstr, const std::string &defaultValue = "");
 JavaObject toJString(const std::string &str);
 

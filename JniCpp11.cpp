@@ -191,6 +191,7 @@ jclass JavaClass::getJClass() const {
       try {
         jclass clazz = env_util::findClass(env, _classPath);
         const_cast<JavaClass *>(this)->_jclazz = toGlobalRefSharedPtr(clazz);
+        env->DeleteLocalRef(clazz);
       } catch (const JniException &e) {
         e.log();
       }
@@ -283,6 +284,7 @@ jclass JavaObject::getJClass() const {
         }
         JniException::checkException(env);
         const_cast<JavaObject *>(this)->_javaClass = JavaClass(clazz);
+        env->DeleteLocalRef(clazz);
       } catch (const JniException &e) {
         e.log();
       }
@@ -414,10 +416,10 @@ JavaObject toJString(const std::string &str) {
 }
 
 std::string fromJString(const JavaObject &jstr, const std::string &defaultValue) {
-  return fromJString((jstring)jstr.getJObject(), defaultValue);
+  return fromJString((jstring)jstr.getJObject(), defaultValue, false);
 }
 
-std::string fromJString(jstring jstr, const std::string &defaultValue) {
+std::string fromJString(jstring jstr, const std::string &defaultValue, bool deleteLocalRef) {
   JNIEnv *env = Jni::getEnv();
   const char *chars = env->GetStringUTFChars(jstr, NULL);
   if (chars == nullptr) {
@@ -425,6 +427,9 @@ std::string fromJString(jstring jstr, const std::string &defaultValue) {
   }
   std::string ret = chars;
   env->ReleaseStringUTFChars(jstr, chars);
+  if (deleteLocalRef) {
+    env->DeleteLocalRef(jstr);
+  }
   return ret;
 }
 
@@ -499,7 +504,7 @@ template <> std::string JavaObject::__call(JNIEnv *env, jmethodID methodId, ...)
   va_start(args, methodId);
   jstring jret = (jstring)env->CallObjectMethodV(_jobject.get(), methodId, args);
   va_end(args);
-  return fromJString(jret);
+  return fromJString(jret, "", true);
 }
 
 template <> std::string JavaClass::__staticCall(JNIEnv *env, jmethodID methodId, ...) const {
@@ -507,17 +512,17 @@ template <> std::string JavaClass::__staticCall(JNIEnv *env, jmethodID methodId,
   va_start(args, methodId);
   jstring jret = (jstring)env->CallObjectMethodV(_jclazz.get(), methodId, args);
   va_end(args);
-  return fromJString(jret);
+  return fromJString(jret, "", true);
 }
 
 template <> std::string JavaObject::_field(JNIEnv *env, jfieldID fieldId) const {
   jstring jret = (jstring)env->GetObjectField(_jobject.get(), fieldId);
-  return fromJString(jret);
+  return fromJString(jret, "", true);
 }
 
 template <> std::string JavaClass::_staticField(JNIEnv *env, jfieldID fieldId) const {
   jstring jret = (jstring)env->GetStaticObjectField(_jclazz.get(), fieldId);
-  return fromJString(jret);
+  return fromJString(jret, "", true);
 }
 
 #pragma mark - Make Arg
