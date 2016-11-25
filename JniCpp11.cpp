@@ -510,7 +510,7 @@ template <> std::string JavaObject::__call(JNIEnv *env, jmethodID methodId, ...)
 template <> std::string JavaClass::__staticCall(JNIEnv *env, jmethodID methodId, ...) const {
   va_list args;
   va_start(args, methodId);
-  jstring jret = (jstring)env->CallObjectMethodV(_jclazz.get(), methodId, args);
+  jstring jret = (jstring)env->CallStaticObjectMethodV(_jclazz.get(), methodId, args);
   va_end(args);
   return fromJString(jret, "", true);
 }
